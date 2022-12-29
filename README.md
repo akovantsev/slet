@@ -1,5 +1,13 @@
+## Install 
 
+```clojure
+;; in deps.edn
+{:deps {github-akovantsev/slet
+        {:git/url "https://github.com/akovantsev/slet"
+         :sha     "9af2a74c3aaa723808ad33d4760238c3f01c0127"}}} ;; actual sha
+```
 
+## Usage
 
 ```clojure
 (ns example
