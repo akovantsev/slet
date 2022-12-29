@@ -1,6 +1,6 @@
 (ns com.akovantsev.slet.core
-  (:require
-   [clojure.spec.alpha :as s]))
+  #?(:cljs (:require-macros [com.akovantsev.slet.core :refer [slet slet!]]))
+  (:require [clojure.spec.alpha :as s]))
 
 
 (defn -keys-keys [skeys-form]
@@ -94,3 +94,4 @@
 #_(slet! [{:keys [::a ::b] :spec ::bar} {::a -1 ::b 2}] [a b])
 #_(slet [{:keys [::a ::b] :spec ::bar} {::a 1 ::b 2}] [a b])
 #_(macroexpand-1 '(slet [{:keys [::a ::b] :spec ::bar} {::a 1 ::b 2}] [a b]))
+#_(macroexpand-1 '(slet! [{:keys [::a ::b] :spec ::bar} {::a 1 ::b 2}] [a b]))
