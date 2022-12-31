@@ -1,3 +1,14 @@
+## What
+
+clj/cljs `let` macro variant, which helps to avoid typos in keys destructuring at macroexpansion time.
+<br>
+<br>Specs must be loaded first, before `slet` macro expansion.
+<br>Checks only `:keys` (not `::keys`, `::foo/keys`, `syms`, `strs`, etc.), and only when `:spec` is present.
+<br>`slet` only checks destructuring keys against `:spec`.
+<br>`slet!` does what `slet` does, plus a runtime value validation against spec.
+<br>`:spec` spec must be one `s/keys` spec, or several `s/keys` specs with `s/and`, `s/or`, `s/merge`, `s/multi-spec`.
+<br>`:spec` spec can be `s/nilable`.
+
 ## Install 
 
 ```clojure
@@ -62,8 +73,8 @@
 ;-1 - failed: pos-int? at: [:example/a] spec: :example/a
 
 
-(slet [{:keys [::a ::b] :spec ::bar} {::a 1 ::b 2}] [a b])
-;=> [1 2]
+(slet [{:keys [::a ::b] :spec ::bar} {::a 1 ::b 2} x 3] [a b x])
+;=> [1 2 3]
 
 
 (macroexpand-1 '(slet [{:keys [::a ::b] :spec ::bar} {::a 1 ::b 2}] [a b]))
