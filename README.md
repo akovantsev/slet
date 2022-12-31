@@ -16,7 +16,7 @@ clj/cljs `let`-like macro to avoid typos in keys destructuring at macroexpansion
 ;; in deps.edn
 {:deps {github-akovantsev/slet
         {:git/url "https://github.com/akovantsev/slet"
-         :sha     "9af2a74c3aaa723808ad33d4760238c3f01c0127"}}} ;; actual sha
+         :sha     "5b1b118ffadb30f401a78ed2ee14d9b5701a2f06"}}} ;; actual sha
 ```
 
 ## Usage
