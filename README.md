@@ -1,13 +1,14 @@
 ## What
 
-clj/cljs `let` macro variant, which helps to avoid typos in keys destructuring at macroexpansion time.
+clj/cljs `let`-like macro to avoid typos in keys destructuring at macroexpansion time.
 <br>
 <br>Specs must be loaded first, before `slet` macro expansion.
-<br>Checks only `:keys` (not `::keys`, `::foo/keys`, `syms`, `strs`, etc.), and only when `:spec` is present.
+<br>Checks only `:keys` (not `::keys`, `::foo/keys`, `syms`, `strs`, etc.), and only when `:spec` or `:conf` is present.
 <br>`slet` only checks destructuring keys against `:spec`.
-<br>`slet!` does what `slet` does, plus a runtime value validation against spec.
-<br>`:spec` spec must be one `s/keys` spec, or several `s/keys` specs with `s/and`, `s/or`, `s/merge`, `s/multi-spec`.
-<br>`:spec` spec can be `s/nilable`.
+<br>`slet!` does what `slet` does, plus at runtime validates against `:spec` or `:conf` spec, plus at runtime conforms valid value to `:conf` spec.
+<br>`:spec` spec must be one `s/keys` spec, or several `s/keys` specs with `s/and`, `s/merge`, `s/multi-spec`, `s/or`.
+<br>`:conf` spec must be one `s/keys` spec, or several `s/keys` specs with `s/and`, `s/merge`, `s/multi-spec`, `s/cat`.
+<br> both can be wrapped in `s/spec`, `s/nilable`, `s/nonconforming`.
 
 ## Install 
 
@@ -19,6 +20,12 @@ clj/cljs `let` macro variant, which helps to avoid typos in keys destructuring a
 ```
 
 ## Usage
+
+### :spec
+
+Checks that desturcturing uses only data keys mentioned in spec.
+<br>`slet!` validates form at runtime against `:spec` spec.
+<br>`slet` does not modify form.
 
 ```clojure
 (ns example
@@ -82,8 +89,75 @@ clj/cljs `let` macro variant, which helps to avoid typos in keys destructuring a
 ;     [a b])
 
 (macroexpand-1 '(slet! [{:keys [::a ::b] :spec ::bar} {::a 1 ::b 2}] [a b]))
-;=> (let [{:keys [:example/a :example/b]} (clojure.spec.alpha/assert*
-;                                           :example/bar
+;=> (let [{:keys [:example/a :example/b]} (clojure.spec.alpha/assert* :example/bar
 ;                                           {:example/a 1, :example/b 2})]
 ;     [a b])
+```
+
+### :conf
+
+Checks that desturcturing uses only conformed keys mentioned in spec.
+<br>`slet!` validates and conforms form at runtime against `:conf` spec.
+<br>`slet` does not modify form.
+
+```clojure
+(macroexpand-1 '(slet  [{:keys [::a ::b] :conf ::bar} {::a 1 ::b 2}] [a b]))
+;=> (let [{:keys [:example/a :example/b]} {:example/a 1, :example/b 2}]
+;     [a b])
+
+(macroexpand-1 '(slet! [{:keys [::a ::b] :conf ::bar} {::a 1 ::b 2}] [a b]))
+;=> (let [{:keys [:example/a :example/b]} (clojure.spec.alpha/conform :example/bar
+;                                         (clojure.spec.alpha/assert* :example/bar
+;                                           {:example/a 1, :example/b 2}))]
+;     [a b])
+
+
+(slet [{:keys [::a ::c] :conf ::foo} []] [a c])
+;Unexpected error (AssertionError) macroexpanding slet at (src/example.cljc:26:1).
+;Assert failed:
+;no tag:
+;  :example/c
+;in spec:
+;  :example/foo
+;spec form:
+;  (clojure.spec.alpha/keys :req [:example/a])
+;conformed spec tags:
+;  #{:example/a}
+;assert:
+;(contains? slet-spec-keys k)
+
+
+
+(s/def ::baz (s/cat :foo (s/? ::foo) :bar (s/* ::bar)))
+
+(slet [{:keys [:foo :bar] :conf ::baz2} []] [foo bar])
+;Syntax error macroexpanding slet at (src/example.cljc:25:1).
+;Unable to resolve spec: :example/baz2
+
+(slet [{:keys [::a :bar] :conf ::baz} []] [a bar])
+;Unexpected error (AssertionError) macroexpanding slet at (src/example.cljc:26:1).
+;Assert failed:
+;no tag:
+;  :example/a
+;in spec:
+;  :example/baz
+;spec form:
+;  (clojure.spec.alpha/cat :foo (clojure.spec.alpha/? :example/foo) :bar (clojure.spec.alpha/* :example/bar))
+;conformed spec tags:
+;  #{:bar :foo}
+;assert:
+;(contains? slet-spec-keys k)
+
+(slet [x 1 {:keys [:foo :bar] :conf ::baz} (s/conform ::baz [])] [x foo bar])
+;=> [1 nil nil]
+
+(slet! [x 1 {:keys [:foo :bar] :conf ::baz} []] [x foo bar])
+;=> [1 nil nil]
+
+
+(s/conform ::baz [{::a 1} {::b 2 ::a 3}])
+;=> {:foo {:example/a 1}, :bar [{:example/b 2, :example/a 3}]}
+
+(slet! [x 1 {:keys [:foo :bar] :conf ::baz} [{::a 1} {::b 2 ::a 3}]] [x foo bar])
+;=> [1 {:example/a 1} [{:example/b 2, :example/a 3}]]
 ```
